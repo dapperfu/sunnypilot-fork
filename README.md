@@ -1,3 +1,10 @@
+# Sunnypilot-fork.
+
+A personal fork for learning the architecture of openpilot and for adding / removing features.
+
+Vehicle: Subaru Outback 2019 (Pre-Global)
+
+# Upstream Sunnypilot Read Me
 ![](https://user-images.githubusercontent.com/47793918/233812617-beab2e71-57b9-479e-8bff-c3931347ca40.png)
 
 Table of Contents

@@ -298,8 +298,16 @@ class Controls:
         self.events.add(EventName.calibrationInvalid)
 
     # Handle lane change
-    lane_change_edge_block = self.sm['lateralPlanSPDEPRECATED'].laneChangeEdgeBlockDEPRECATED if self.model_use_lateral_planner else self.sm['modelV2SP'].laneChangeEdgeBlock
-    lane_change_svs = self.sm['lateralPlanDEPRECATED'] if self.model_use_lateral_planner else self.sm['modelV2'].meta
+    if self.model_use_lateral_planner:
+        lane_change_edge_block = self.sm['lateralPlanSPDEPRECATED'].laneChangeEdgeBlockDEPRECATED
+    else:
+        lane_change_edge_block = self.sm['modelV2SP'].laneChangeEdgeBlock
+
+    if self.model_use_lateral_planner:
+        lane_change_svs = self.sm['lateralPlanDEPRECATED']
+    else:
+        lane_change_svs = self.sm['modelV2'].meta
+
     if lane_change_svs.laneChangeState == LaneChangeState.preLaneChange and lane_change_edge_block:
       self.events.add(EventName.laneChangeRoadEdge)
     elif lane_change_svs.laneChangeState == LaneChangeState.preLaneChange:

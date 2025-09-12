@@ -22,12 +22,12 @@ class DRIVER_MONITOR_SETTINGS:
   def __init__(self):
     self._DT_DMON = DT_DMON
     # ref (page15-16): https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:42018X1947&rid=2
-    self._AWARENESS_TIME = 30. # passive wheeltouch total timeout
-    self._AWARENESS_PRE_TIME_TILL_TERMINAL = 15.
-    self._AWARENESS_PROMPT_TIME_TILL_TERMINAL = 6.
-    self._DISTRACTED_TIME = 11. # active monitoring total timeout
-    self._DISTRACTED_PRE_TIME_TILL_TERMINAL = 8.
-    self._DISTRACTED_PROMPT_TIME_TILL_TERMINAL = 6.
+    self._AWARENESS_TIME = 45. # passive wheeltouch total timeout (increased from 30s)
+    self._AWARENESS_PRE_TIME_TILL_TERMINAL = 25. # increased from 15s
+    self._AWARENESS_PROMPT_TIME_TILL_TERMINAL = 15. # increased from 6s
+    self._DISTRACTED_TIME = 20. # active monitoring total timeout (increased from 11s)
+    self._DISTRACTED_PRE_TIME_TILL_TERMINAL = 15. # increased from 8s
+    self._DISTRACTED_PROMPT_TIME_TILL_TERMINAL = 10. # increased from 6s
 
     self._FACE_THRESHOLD = 0.7
     self._EYE_THRESHOLD = 0.65

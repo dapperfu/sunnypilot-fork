@@ -138,7 +138,7 @@ class CarSpecificEvents:
     # Temporarily disabled seatbelt check due to cut wire
     # if CS.seatbeltUnlatched:
     #   events.add(EventName.seatbeltNotLatched)
-    if CS.gearShifter != GearShifter.drive and (extra_gears is None or
+    if CS.gearShifter != GearShifter.drive and CS.gearShifter != GearShifter.neutral and (extra_gears is None or
        CS.gearShifter not in extra_gears):
       events.add(EventName.wrongGear)
     if CS.gearShifter == GearShifter.reverse:

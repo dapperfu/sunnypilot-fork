@@ -5,8 +5,6 @@ from opendbc.car.lateral import apply_driver_steer_torque_limits, common_fault_a
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.subaru import subarucan
 from opendbc.car.subaru.values import DBC, GLOBAL_ES_ADDR, CanBus, CarControllerParams, SubaruFlags
-from opendbc.car.common.filter_simple import FirstOrderFilter
-from opendbc.car import DT_CTRL
 
 # FIXME: These limits aren't exact. The real limit is more than likely over a larger time period and
 # involves the total steering angle change rather than rate, but these limits work well for now
@@ -22,10 +20,6 @@ class CarController(CarControllerBase):
     self.cruise_button_prev = 0
     self.steer_rate_counter = 0
 
-    # Torque filtering for smoother steering (over-damped first-order filter)
-    # RC = 0.1s provides good smoothing without excessive lag
-    self.torque_filter = FirstOrderFilter(0.0, 0.1, DT_CTRL)
-
     self.p = CarControllerParams(CP)
     self.packer = CANPacker(DBC[CP.carFingerprint][Bus.pt])
 
@@ -38,20 +32,15 @@ class CarController(CarControllerBase):
 
     # *** steering ***
     if (self.frame % self.p.STEER_STEP) == 0:
-      # Apply low-pass filter to smooth torque commands
-      raw_torque = actuators.torque * self.p.STEER_MAX
-      filtered_torque = self.torque_filter.update(raw_torque)
-      
-      apply_torque = int(round(filtered_torque))
+      apply_torque = int(round(actuators.torque * self.p.STEER_MAX))
 
       # limits due to driver torque
+
       new_torque = int(round(apply_torque))
       apply_torque = apply_driver_steer_torque_limits(new_torque, self.apply_torque_last, CS.out.steeringTorque, self.p)
 
       if not CC.latActive:
         apply_torque = 0
-        # Reset filter when not active to avoid windup
-        self.torque_filter.x = 0.0
 
       if self.CP.flags & SubaruFlags.PREGLOBAL:
         can_sends.append(subarucan.create_preglobal_steering_control(self.packer, self.frame // self.p.STEER_STEP, apply_torque, CC.latActive))

@@ -2,7 +2,7 @@ from openpilot.common.params import Params
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.widgets import Widget, DialogResult
 from openpilot.system.ui.widgets.confirm_dialog import confirm_dialog
-from openpilot.system.ui.widgets.list_view import button_item, text_item
+from openpilot.system.ui.widgets.list_view import button_item, text_item, toggle_item
 from openpilot.system.ui.widgets.scroller import Scroller
 
 
@@ -17,6 +17,12 @@ class SoftwareLayout(Widget):
   def _init_items(self):
     items = [
       text_item("Current Version", ""),
+      toggle_item(
+        "Disable Updates",
+        "Prevent sunnypilot from checking for updates and requiring internet connectivity. This disables the 'call home' feature.",
+        self._params.get_bool("DisableUpdates"),
+        icon="update.png",
+      ),
       button_item("Download", "CHECK", callback=self._on_download_update),
       button_item("Install Update", "INSTALL", callback=self._on_install_update),
       button_item("Target Branch", "SELECT", callback=self._on_select_branch),

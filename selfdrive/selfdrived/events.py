@@ -72,7 +72,43 @@ def startup_master_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubM
   if "REPLAY" in os.environ:
     branch = "replay"
 
-  return StartupAlert("WARNING: This branch is not tested", branch, alert_status=AlertStatus.userPrompt)
+  # Humorous randomized warning messages for dev branch
+  if branch == "dev":
+    import random
+    humorous_warnings = [
+      "WARNING: This branch is YOLO",
+      "WARNING: This branch is experimental AF", 
+      "WARNING: This branch may contain bugs",
+      "WARNING: This branch is untested territory",
+      "WARNING: This branch is chaos mode",
+      "WARNING: This branch is breaking things",
+      "WARNING: This branch is wild west",
+      "WARNING: This branch is use at your own risk",
+      "WARNING: This branch is no warranty",
+      "WARNING: This branch is beta AF",
+      "WARNING: This branch is proceed with caution",
+      "WARNING: This branch is work in progress",
+      "WARNING: This branch is under construction",
+      "WARNING: This branch is testing ground",
+      "WARNING: This branch is experimental playground",
+      "WARNING: This branch is unstable branch",
+      "WARNING: This branch is what could go wrong",
+      "WARNING: This branch is send it",
+      "WARNING: This branch is hold my beer",
+      "WARNING: This branch is it works on my machine"
+    ]
+    # Use commit hash as seed for consistent randomization per session
+    try:
+      import subprocess
+      commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd="/data/openpilot").decode().strip()
+      random.seed(int(commit_hash[:8], 16))
+    except:
+      pass
+    warning_message = random.choice(humorous_warnings)
+  else:
+    warning_message = "WARNING: This branch is not tested"
+
+  return StartupAlert(warning_message, branch, alert_status=AlertStatus.userPrompt)
 
 def below_engage_speed_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
   return NoEntryAlert(f"Drive above {get_display_speed(CP.minEnableSpeed, metric)} to engage")

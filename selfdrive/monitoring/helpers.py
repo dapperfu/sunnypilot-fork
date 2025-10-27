@@ -22,12 +22,12 @@ class DRIVER_MONITOR_SETTINGS:
   def __init__(self):
     self._DT_DMON = DT_DMON
     # ref (page15-16): https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:42018X1947&rid=2
-    self._AWARENESS_TIME = 30. # passive wheeltouch total timeout
-    self._AWARENESS_PRE_TIME_TILL_TERMINAL = 15.
-    self._AWARENESS_PROMPT_TIME_TILL_TERMINAL = 6.
-    self._DISTRACTED_TIME = 11. # active monitoring total timeout
-    self._DISTRACTED_PRE_TIME_TILL_TERMINAL = 8.
-    self._DISTRACTED_PROMPT_TIME_TILL_TERMINAL = 6.
+    self._AWARENESS_TIME = 45. # passive wheeltouch total timeout (increased from 30s)
+    self._AWARENESS_PRE_TIME_TILL_TERMINAL = 25. # increased from 15s
+    self._AWARENESS_PROMPT_TIME_TILL_TERMINAL = 15. # increased from 6s
+    self._DISTRACTED_TIME = 20. # active monitoring total timeout (increased from 11s)
+    self._DISTRACTED_PRE_TIME_TILL_TERMINAL = 15. # increased from 8s
+    self._DISTRACTED_PROMPT_TIME_TILL_TERMINAL = 10. # increased from 6s
 
     self._FACE_THRESHOLD = 0.7
     self._EYE_THRESHOLD = 0.65
@@ -41,11 +41,11 @@ class DRIVER_MONITOR_SETTINGS:
     self._EE_THRESH21 = 0.01
     self._EE_THRESH22 = 0.35
 
-    self._POSE_PITCH_THRESHOLD = 0.3133
-    self._POSE_PITCH_THRESHOLD_SLACK = 0.3237
+    self._POSE_PITCH_THRESHOLD = 0.4  # increased from 0.3133 - more lenient pitch detection
+    self._POSE_PITCH_THRESHOLD_SLACK = 0.45  # increased from 0.3237 - more lenient slack pitch
     self._POSE_PITCH_THRESHOLD_STRICT = self._POSE_PITCH_THRESHOLD
-    self._POSE_YAW_THRESHOLD = 0.4020
-    self._POSE_YAW_THRESHOLD_SLACK = 0.5042
+    self._POSE_YAW_THRESHOLD = 0.5  # increased from 0.4020 - more lenient yaw detection
+    self._POSE_YAW_THRESHOLD_SLACK = 0.6  # increased from 0.5042 - more lenient slack yaw
     self._POSE_YAW_THRESHOLD_STRICT = self._POSE_YAW_THRESHOLD
     self._PITCH_NATURAL_OFFSET = 0.029 # initial value before offset is learned
     self._PITCH_NATURAL_THRESHOLD = 0.449
@@ -57,7 +57,7 @@ class DRIVER_MONITOR_SETTINGS:
 
     self._POSESTD_THRESHOLD = 0.3
     self._HI_STD_FALLBACK_TIME = int(10  / self._DT_DMON)  # fall back to wheel touch if model is uncertain for 10s
-    self._DISTRACTED_FILTER_TS = 0.25  # 0.6Hz
+    self._DISTRACTED_FILTER_TS = 0.1  # increased from 0.25 (0.6Hz -> 2.5Hz) - faster response
     self._ALWAYS_ON_ALERT_MIN_SPEED = 11
 
     self._POSE_CALIB_MIN_SPEED = 13  # 30 mph
@@ -68,8 +68,8 @@ class DRIVER_MONITOR_SETTINGS:
     self._WHEELPOS_THRESHOLD = 0.5
     self._WHEELPOS_FILTER_MIN_COUNT = int(15 / self._DT_DMON) # allow 15 seconds to converge wheel side
 
-    self._RECOVERY_FACTOR_MAX = 5.  # relative to minus step change
-    self._RECOVERY_FACTOR_MIN = 1.25  # relative to minus step change
+    self._RECOVERY_FACTOR_MAX = 8.  # increased from 5. - faster awareness recovery
+    self._RECOVERY_FACTOR_MIN = 2.  # increased from 1.25 - faster awareness recovery
 
     self._MAX_TERMINAL_ALERTS = 3  # not allowed to engage after 3 terminal alerts
     self._MAX_TERMINAL_DURATION = int(30 / self._DT_DMON)  # not allowed to engage after 30s of terminal alerts
@@ -328,7 +328,7 @@ class DriverMonitoring:
       self._reset_awareness()
       return
 
-    driver_attentive = self.driver_distraction_filter.x < 0.37
+    driver_attentive = self.driver_distraction_filter.x < 0.5  # increased from 0.37 - easier to be considered attentive
     awareness_prev = self.awareness
 
     if (driver_attentive and self.face_detected and self.pose.low_std and self.awareness > 0):
@@ -350,7 +350,7 @@ class DriverMonitoring:
     always_on_red_exemption = always_on_valid and not op_engaged and _reaching_terminal
     always_on_lowspeed_exemption = always_on_valid and not op_engaged and car_speed < self.settings._ALWAYS_ON_ALERT_MIN_SPEED
 
-    certainly_distracted = self.driver_distraction_filter.x > 0.63 and self.driver_distracted and self.face_detected
+    certainly_distracted = self.driver_distraction_filter.x > 0.75 and self.driver_distracted and self.face_detected  # increased from 0.63 - harder to be considered distracted
     maybe_distracted = self.hi_stds > self.settings._HI_STD_FALLBACK_TIME or not self.face_detected
 
     if certainly_distracted or maybe_distracted:

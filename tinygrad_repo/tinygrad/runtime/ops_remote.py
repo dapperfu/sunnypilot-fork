@@ -100,7 +100,7 @@ class GraphComputeItem:
   datahash: str
   bufs: tuple[int, ...]
   vars: tuple[Variable, ...]
-  fixedvars: dict[str, int]
+  fixedvars: dict[Variable, int]
   ins: tuple[int, ...]
   outs: tuple[int, ...]
   global_size: tuple[sint, ...]|None
@@ -111,7 +111,7 @@ class GraphAlloc(RemoteRequest):
   graph_num: int
   jit_cache: tuple[GraphComputeItem|Transfer, ...]
   bufs: tuple[tuple[SessionKey, int], ...]
-  var_vals: dict[str, int]
+  var_vals: dict[Variable, int]
 
 @dataclass(frozen=True)
 class GraphFree(RemoteRequest):
@@ -121,7 +121,7 @@ class GraphFree(RemoteRequest):
 class GraphExec(RemoteRequest):
   graph_num: int
   bufs: tuple[tuple[SessionKey, int], ...]
-  var_vals: dict[str, int]
+  var_vals: dict[Variable, int]
   wait: bool
 
 # for safe deserialization
@@ -306,10 +306,7 @@ class RemoteHandler:
           case ProgramAlloc():
             lib = dev.compiler.compile_cached(req._h[c.datahash].decode())
             session.programs[(c.name, c.datahash)] = dev.runtime(c.name, lib)
-          case ProgramFree():
-            key = (c.name, c.datahash)
-            # WORKAROUND: should be unconditional once the protocol supports proper exception handling
-            if key in session.programs: del session.programs[key]
+          case ProgramFree(): del session.programs[(c.name, c.datahash)]
           case ProgramExec():
             bufs = [session.buffers[x]._buf for x in c.bufs]
             extra_args = {k:v for k,v in [("global_size", c.global_size), ("local_size", c.local_size)] if v is not None}
@@ -424,24 +421,19 @@ class RemoteConnection:
     conns = RemoteConnection.all.keys()
     datas = {conn: conn.req.serialize() for conn in conns}
     reqs, hashes, hash_datas = sum(len(c.req._q) for c in conns), sum(len(c.req._h) for c in conns), sum(len(data) for data in datas.values())
-    resps = []
     with Timing(f"*** send {reqs:-3d} requests {hashes:-3d} hashes with len {hash_datas/1024:.2f} kB in ", enabled=DEBUG>=3):
       for conn,data in datas.items(): conn.conn.request("POST", "/batch", data)
       for conn in datas.keys():
-        resp = conn.conn.getresponse()
-        body = resp.read()
-        resps.append((conn, resp, body))
-        conn.req = BatchRequest()
-    if take_q: RemoteConnection.q_lock.release()
-    for conn,resp,body in resps:
-      match resp.status:
-        case http.HTTPStatus.OK: pass
-        case http.HTTPStatus.INTERNAL_SERVER_ERROR:
-          exc_wrapper = safe_eval(ast.parse(body.decode(), mode="eval").body)
+        response = conn.conn.getresponse()
+        resp = response.read()
+        conn.req = BatchRequest() # no matter what response, reset conn
+        if response.status == http.HTTPStatus.INTERNAL_SERVER_ERROR:
+          exc_wrapper = safe_eval(ast.parse(resp.decode(), mode="eval").body)
           exc_wrapper.exc.add_note(exc_wrapper.trace)
           raise exc_wrapper.exc
-        case code: raise RuntimeError(f"POST /batch failed with {code}: {body.decode()}")
-      if conn == self: ret = body
+        assert response.status == http.HTTPStatus.OK, f"POST /batch failed: {resp.decode()}"
+        if conn == self: ret = resp
+    if take_q: RemoteConnection.q_lock.release()
     return ret
 
 def parse_hosts(hs:str) -> list[tuple[str, int]]|LazySeq[tuple[str, int]]:
@@ -471,11 +463,10 @@ class RemoteDevice(Compiled):
     if not renderer[0].startswith("tinygrad.") or not renderer[1].endswith("Renderer"): raise RuntimeError(f"bad renderer {renderer}")
     renderer_class = fromimport(renderer[0], renderer[1])  # TODO: is this secure?
     if not issubclass(renderer_class, Renderer): raise RuntimeError(f"renderer isn't a Renderer {renderer}")
-
+    renderer_instance = renderer_class(*renderer[2])
+    renderer_instance.device = device
     graph = fromimport('tinygrad.runtime.graph.remote', "RemoteGraph") if self.properties.graph_supported else None
-    compilers = [(functools.partial(renderer_class, *renderer[2]), Compiler)]
-    super().__init__(device, RemoteAllocator(self), compilers, functools.partial(RemoteProgram, self), graph, id(self.conn))
-    self.renderer.device = device
+    super().__init__(device, RemoteAllocator(self), renderer_instance, Compiler(), functools.partial(RemoteProgram, self), graph, id(self.conn))
 
   def finalize(self):
     with contextlib.suppress(ConnectionError, http.client.HTTPException): self.q(SessionFree(), wait=True)

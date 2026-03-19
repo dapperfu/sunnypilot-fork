@@ -15,7 +15,7 @@ from openpilot.common.text_window import TextWindow
 from openpilot.system.hardware import HARDWARE
 from openpilot.system.manager.helpers import unblock_stdout, write_onroad_params, save_bootlog
 from openpilot.system.manager.process import ensure_running
-from openpilot.system.manager.process_config import managed_processes
+from openpilot.system.manager.process_config import has_driver_camera, managed_processes
 from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_ID
 from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata
@@ -140,6 +140,11 @@ def manager_thread() -> None:
   pm = messaging.PubMaster(['managerState'])
 
   write_onroad_params(False, params)
+  # So camerad disables driver camera on 3XL / 3X Lite (no hardware)
+  if has_driver_camera():
+    os.environ.pop("DISABLE_DRIVER", None)
+  else:
+    os.environ["DISABLE_DRIVER"] = "1"
   ensure_running(managed_processes.values(), False, params=params, CP=sm['carParams'], not_run=ignore)
 
   started_prev = False
@@ -166,6 +171,11 @@ def manager_thread() -> None:
     started_prev = started
     ignition_prev = ignition
 
+    # So camerad disables driver camera on 3XL / 3X Lite (no hardware)
+    if has_driver_camera():
+      os.environ.pop("DISABLE_DRIVER", None)
+    else:
+      os.environ["DISABLE_DRIVER"] = "1"
     ensure_running(managed_processes.values(), started, params=params, CP=sm['carParams'], not_run=ignore)
 
     running = ' '.join("{}{}\u001b[0m".format("\u001b[32m" if p.proc.is_alive() else "\u001b[31m", p.name)

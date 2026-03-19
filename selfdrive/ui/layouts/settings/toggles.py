@@ -1,5 +1,6 @@
 from cereal import log
 from openpilot.common.params import Params, UnknownKeyName
+from openpilot.system.manager.process_config import has_driver_camera
 from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.widgets.list_view import multiple_button_item, toggle_item
 from openpilot.system.ui.widgets.scroller_tici import Scroller
@@ -76,12 +77,6 @@ class TogglesLayout(Widget):
         "monitoring.png",
         False,
       ),
-      "RecordFront": (
-        lambda: tr("Record and Upload Driver Camera"),
-        DESCRIPTIONS["RecordFront"],
-        "monitoring.png",
-        True,
-      ),
       "RecordAudio": (
         lambda: tr("Record and Upload Microphone Audio"),
         DESCRIPTIONS["RecordAudio"],
@@ -95,6 +90,13 @@ class TogglesLayout(Widget):
         False,
       ),
     }
+    if has_driver_camera():
+      self._toggle_defs["RecordFront"] = (
+        lambda: tr("Record and Upload Driver Camera"),
+        DESCRIPTIONS["RecordFront"],
+        "monitoring.png",
+        True,
+      )
 
     self._long_personality_setting = multiple_button_item(
       lambda: tr("Driving Personality"),

@@ -21,6 +21,7 @@ from openpilot.selfdrive.selfdrived.helpers import ExcessiveActuationCheck
 from openpilot.selfdrive.selfdrived.state import StateMachine
 from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroad_alert
 
+from openpilot.system.manager.process_config import has_driver_camera
 from openpilot.system.version import get_build_metadata
 from openpilot.system.hardware import HARDWARE
 
@@ -92,6 +93,8 @@ class SelfdriveD(CruiseHelper):
     ignore = self.sensor_packets + self.gps_packets + ['alertDebug'] + ['modelDataV2SP']
     if SIMULATION:
       ignore += ['driverCameraState', 'managerState']
+    if not has_driver_camera():
+      ignore += ['driverCameraState']
     if REPLAY:
       # no vipc in replay will make them ignored anyways
       ignore += ['roadCameraState', 'wideRoadCameraState']
@@ -474,6 +477,9 @@ class SelfdriveD(CruiseHelper):
         if VisionStreamType.VISION_STREAM_WIDE_ROAD not in available_streams:
           self.sm.ignore_alive.append('wideRoadCameraState')
           self.sm.ignore_valid.append('wideRoadCameraState')
+        if VisionStreamType.VISION_STREAM_DRIVER not in available_streams:
+          self.sm.ignore_alive.append('driverCameraState')
+          self.sm.ignore_valid.append('driverCameraState')
 
         if REPLAY and any(ps.controlsAllowed for ps in self.sm['pandaStates']):
           self.state_machine.state = State.enabled

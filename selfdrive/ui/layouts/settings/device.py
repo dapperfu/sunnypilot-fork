@@ -9,6 +9,7 @@ from openpilot.selfdrive.ui.onroad.driver_camera_dialog import DriverCameraDialo
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.selfdrive.ui.layouts.onboarding import TrainingGuide
 from openpilot.selfdrive.ui.widgets.pairing_dialog import PairingDialog
+from openpilot.system.manager.process_config import has_driver_camera
 from openpilot.system.ui.lib.application import FontWeight, gui_app
 from openpilot.system.ui.lib.multilang import multilang, tr, tr_noop
 from openpilot.system.ui.widgets import Widget, DialogResult
@@ -60,8 +61,6 @@ class DeviceLayout(Widget):
       text_item(lambda: tr("Dongle ID"), self._params.get("DongleId") or (lambda: tr("N/A"))),
       text_item(lambda: tr("Serial"), self._params.get("HardwareSerial") or (lambda: tr("N/A"))),
       self._pair_device_btn,
-      button_item(lambda: tr("Driver Camera"), lambda: tr("PREVIEW"), lambda: tr(DESCRIPTIONS['driver_camera']),
-                  callback=lambda: gui_app.push_widget(DriverCameraDialog()), enabled=ui_state.is_offroad),
       self._reset_calib_btn,
       button_item(lambda: tr("Review Training Guide"), lambda: tr("REVIEW"), lambda: tr(DESCRIPTIONS['review_guide']),
                   self._on_review_training_guide, enabled=ui_state.is_offroad),
@@ -69,6 +68,9 @@ class DeviceLayout(Widget):
       button_item(lambda: tr("Change Language"), lambda: tr("CHANGE"), callback=self._show_language_dialog),
       self._power_off_btn,
     ]
+    if has_driver_camera():
+      items.insert(3, button_item(lambda: tr("Driver Camera"), lambda: tr("PREVIEW"), lambda: tr(DESCRIPTIONS['driver_camera']),
+                                  callback=lambda: gui_app.push_widget(DriverCameraDialog()), enabled=ui_state.is_offroad))
     return items
 
   def _offroad_transition(self):

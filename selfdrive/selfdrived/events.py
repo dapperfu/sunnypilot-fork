@@ -10,7 +10,7 @@ from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.locationd.calibrationd import MIN_SPEED_FILTER
 from openpilot.system.micd import SAMPLE_RATE, SAMPLE_BUFFER
 from openpilot.selfdrive.ui.feedback.feedbackd import FEEDBACK_MAX_DURATION
-from openpilot.system.hardware import HARDWARE
+from openpilot.system.manager.process_config import has_driver_camera
 
 from openpilot.sunnypilot.selfdrive.selfdrived.events_base import EventsBase, Priority, ET, Alert, \
   NoEntryAlert, SoftDisableAlert, UserSoftDisableAlert, ImmediateDisableAlert, EngagementAlert, NormalPermanentAlert, \
@@ -131,7 +131,10 @@ def comm_issue_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaste
 
 
 def camera_malfunction_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
-  all_cams = ('roadCameraState', 'driverCameraState', 'wideRoadCameraState')
+  all_cams = ['roadCameraState', 'wideRoadCameraState']
+  if has_driver_camera():
+    all_cams.append('driverCameraState')
+  all_cams = tuple(all_cams)
   bad_cams = [s.replace('State', '') for s in all_cams if s in sm.data.keys() and not sm.all_checks([s, ])]
   return NormalPermanentAlert("Camera Malfunction", ', '.join(bad_cams))
 
